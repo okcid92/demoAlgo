@@ -30,21 +30,33 @@
         <div class="score-card">
           <h3>TF-IDF + Cosinus</h3>
           <p id="cosineScore">-</p>
+          <div class="progress">
+            <div id="cosineProgress" class="progress-bar cosine"></div>
+          </div>
           <small>(40% du score final)</small>
         </div>
         <div class="score-card">
           <h3>Indice de Jaccard</h3>
           <p id="jaccardScore">-</p>
+          <div class="progress">
+            <div id="jaccardProgress" class="progress-bar jaccard"></div>
+          </div>
           <small>(30% du score final)</small>
         </div>
         <div class="score-card">
           <h3>N-gram Overlap</h3>
           <p id="ngramScore">-</p>
+          <div class="progress">
+            <div id="ngramProgress" class="progress-bar ngram"></div>
+          </div>
           <small>(30% du score final)</small>
         </div>
         <div class="score-card combined">
           <h3>Score Combiné</h3>
           <p id="combinedScore">-</p>
+          <div class="progress">
+            <div id="combinedProgress" class="progress-bar combined"></div>
+          </div>
           <small>(0-100%)</small>
         </div>
       </div>
