@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Démonstration Algorithmes de Plagiat</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Démonstration des Algorithmes de Plagiat</h1>
+    <p>Collez deux textes ci-dessous pour voir comment les algorithmes détectent les similarités.</p>
+
+    <div class="text-inputs">
+      <div class="text-box">
+        <h2>Texte A</h2>
+        <textarea id="textA" placeholder="Collez votre premier texte ici..."></textarea>
+      </div>
+      <div class="text-box">
+        <h2>Texte B</h2>
+        <textarea id="textB" placeholder="Collez votre deuxième texte ici..."></textarea>
+      </div>
+    </div>
+
+    <button id="analyzeBtn">Analyser</button>
+
+    <div class="results" id="results" style="display: none;">
+      <h2>Résultats</h2>
+      <div class="scores">
+        <div class="score-card">
+          <h3>TF-IDF + Cosinus</h3>
+          <p id="cosineScore">-</p>
+          <small>(40% du score final)</small>
+        </div>
+        <div class="score-card">
+          <h3>Indice de Jaccard</h3>
+          <p id="jaccardScore">-</p>
+          <small>(30% du score final)</small>
+        </div>
+        <div class="score-card">
+          <h3>N-gram Overlap</h3>
+          <p id="ngramScore">-</p>
+          <small>(30% du score final)</small>
+        </div>
+        <div class="score-card combined">
+          <h3>Score Combiné</h3>
+          <p id="combinedScore">-</p>
+          <small>(0-100%)</small>
+        </div>
+      </div>
+
+      <div class="highlights">
+        <h3>Similarités Détectées</h3>
+        <div class="highlight-section">
+          <div class="highlight-box">
+            <h4>Texte A</h4>
+            <div id="highlightA" class="highlight-text"></div>
+          </div>
+          <div class="highlight-box">
+            <h4>Texte B</h4>
+            <div id="highlightB" class="highlight-text"></div>
+          </div>
+        </div>
+        <div class="legend">
+          <small>
+            <span class="legend-item"><span class="color-box ngram"></span> N-gram (segments identiques)</span>
+            <span class="legend-item"><span class="color-box jaccard"></span> Jaccard (mots communs)</span>
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
