@@ -117,9 +117,9 @@ function generateHighlights(textA, textB) {
   }
   
   // Ajouter les highlights basés sur les mots communs (Jaccard)
-  const stopwords = stopword.en;
-  const contentWordsA = wordsA.filter(w => !stopwords.includes(w) && w.length > 3);
-  const contentWordsB = new Set(wordsB.filter(w => !stopwords.includes(w) && w.length > 3));
+  const commonStopwords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'is', 'was', 'are', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'la', 'le', 'les', 'un', 'une', 'des', 'et', 'ou', 'dans', 'sur', 'par', 'pour', 'est', 'sont'];
+  const contentWordsA = wordsA.filter(w => !commonStopwords.includes(w) && w.length > 3);
+  const contentWordsB = new Set(wordsB.filter(w => !commonStopwords.includes(w) && w.length > 3));
   
   contentWordsA.forEach(word => {
     if (contentWordsB.has(word)) {
