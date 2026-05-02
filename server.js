@@ -6,12 +6,15 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-// TF-IDF + Cosine Similarity
+function tokenize(text) {
+  return text.match(/\p{L}+/gu) || [];
+}
+
+// TF-IDF + Cosine Similarity (français)
 function calculateCosineSimilarity(textA, textB) {
-  const tokenizer = new natural.WordTokenizer();
-  const stemmer = natural.PorterStemmer;
+  const stemmer = natural.PorterStemmerFr;
   const texts = [textA, textB].map(text =>
-    stopword.removeStopwords(tokenizer.tokenize(text.toLowerCase())).map(stemmer.stem)
+    stopword.removeStopwords(tokenize(text.toLowerCase()), stopword.fra).map(w => stemmer.stem(w))
   );
 
   const tfidf = new natural.TfIdf();
@@ -43,16 +46,15 @@ function calculateCosineSimilarity(textA, textB) {
   return dotProduct / (magnitudeA * magnitudeB);
 }
 
-// Jaccard Similarity avec stemming et stopwords
+// Jaccard Similarity avec stemming et stopwords (français)
 function calculateJaccardSimilarity(textA, textB) {
-  const tokenizer = new natural.WordTokenizer();
-  const stemmer = natural.PorterStemmer;
+  const stemmer = natural.PorterStemmerFr;
   
   const setA = new Set(
-    stopword.removeStopwords(tokenizer.tokenize(textA.toLowerCase())).map(stemmer.stem)
+    stopword.removeStopwords(tokenize(textA.toLowerCase()), stopword.fra).map(w => stemmer.stem(w))
   );
   const setB = new Set(
-    stopword.removeStopwords(tokenizer.tokenize(textB.toLowerCase())).map(stemmer.stem)
+    stopword.removeStopwords(tokenize(textB.toLowerCase()), stopword.fra).map(w => stemmer.stem(w))
   );
   
   const intersection = new Set([...setA].filter(x => setB.has(x)));
@@ -62,7 +64,7 @@ function calculateJaccardSimilarity(textA, textB) {
 }
 
 function normalize(text) {
-  return text.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  return text.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function escapeRegExp(text) {
@@ -70,11 +72,15 @@ function escapeRegExp(text) {
 }
 
 const COMMON_STOPWORDS = [
-  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
-  'by', 'from', 'is', 'was', 'are', 'were', 'be', 'been', 'being', 'have', 'has',
-  'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might',
-  'can', 'la', 'le', 'les', 'un', 'une', 'des', 'et', 'ou', 'dans', 'sur', 'par',
-  'pour', 'est', 'sont', 'c\'est', 'voici'
+  'le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'et', 'est', 'sont',
+  'ou', 'mais', 'donc', 'or', 'ni', 'car', 'que', 'qui', 'dans', 'sur',
+  'par', 'pour', 'avec', 'sans', 'sous', 'entre', 'vers', 'chez', 'ce',
+  'cette', 'ces', 'son', 'sa', 'ses', 'notre', 'votre', 'leur', 'ils',
+  'elles', 'il', 'elle', 'nous', 'vous', 'je', 'tu', 'ont', 'a', 'au',
+  'aux', 'en', 'se', 'ne', 'pas', 'plus', 'moins', 'tres', 'bien', 'aussi',
+  'tout', 'tous', 'toute', 'toutes', 'fait', 'faire', 'etre', 'avoir',
+  'comme', 'si', 'y', 'on', 'ma', 'ta', 'sa', 'mon', 'ton', 'mes', 'tes',
+  'c', 'd', 'j', 'l', 'qu', 'n', 's', 't', 'voici', 'voila', 'depuis'
 ];
 
 // N-gram Overlap (bigrammes avec tolérance d'ordre et comparaison partielle)
@@ -128,26 +134,46 @@ function calculateNgramSimilarity(textA, textB, n = 2) {
 // Trouver toutes les occurrences d'un mot avec offset
 function findWordOffsets(text, word) {
   const offsets = [];
-  const regex = new RegExp(`\\b${escapeRegExp(word)}\\b`, 'gi');
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    offsets.push({
-      offset: match.index,
-      text: match[0]
-    });
+  const lowerText = text.toLowerCase();
+  const lowerWord = word.toLowerCase();
+  let start = 0;
+  while (true) {
+    const index = lowerText.indexOf(lowerWord, start);
+    if (index === -1) break;
+    const end = index + lowerWord.length;
+    const before = index > 0 ? lowerText[index - 1] : ' ';
+    const after = end < lowerText.length ? lowerText[end] : ' ';
+    const isWordChar = (c) => /[a-z0-9_\u00c0-\u024f]/i.test(c);
+    if (!isWordChar(before) && !isWordChar(after)) {
+      offsets.push({
+        offset: index,
+        text: text.substring(index, end)
+      });
+    }
+    start = index + 1;
   }
   return offsets;
 }
 
 function findPhraseOffsets(text, phrase) {
   const offsets = [];
-  const regex = new RegExp(`\\b${escapeRegExp(phrase)}\\b`, 'gi');
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    offsets.push({
-      offset: match.index,
-      text: text.substring(match.index, match.index + match[0].length)
-    });
+  const lowerText = text.toLowerCase();
+  const lowerPhrase = phrase.toLowerCase();
+  let start = 0;
+  while (true) {
+    const index = lowerText.indexOf(lowerPhrase, start);
+    if (index === -1) break;
+    const end = index + lowerPhrase.length;
+    const before = index > 0 ? lowerText[index - 1] : ' ';
+    const after = end < lowerText.length ? lowerText[end] : ' ';
+    const isWordChar = (c) => /[a-z0-9_\u00c0-\u024f]/i.test(c);
+    if (!isWordChar(before) && !isWordChar(after)) {
+      offsets.push({
+        offset: index,
+        text: text.substring(index, end)
+      });
+    }
+    start = index + 1;
   }
   return offsets;
 }
@@ -242,9 +268,8 @@ function generateHighlights(textA, textB) {
   });
 
   // 3. Détecter les mots communs (Jaccard)
-  const tokenizer = new natural.WordTokenizer();
-  const wordsA = tokenizer.tokenize(textA.toLowerCase()) || [];
-  const wordsB = tokenizer.tokenize(textB.toLowerCase()) || [];
+  const wordsA = tokenize(textA.toLowerCase()) || [];
+  const wordsB = tokenize(textB.toLowerCase()) || [];
 
   const contentWordsA = wordsA.filter(w => !COMMON_STOPWORDS.includes(w) && w.length > 3);
   const contentWordsB = new Set(wordsB.filter(w => !COMMON_STOPWORDS.includes(w) && w.length > 3));
@@ -278,9 +303,8 @@ function getCommonWords(textA, textB) {
 }
 
 function getTopTfidfTerms(textA, textB, limit = 6) {
-  const tokenizer = new natural.WordTokenizer();
-  const tokensA = tokenizer.tokenize(normalize(textA)).filter(w => w.length > 3 && !COMMON_STOPWORDS.includes(w));
-  const tokensB = tokenizer.tokenize(normalize(textB)).filter(w => w.length > 3 && !COMMON_STOPWORDS.includes(w));
+  const tokensA = tokenize(normalize(textA)).filter(w => w.length > 3 && !COMMON_STOPWORDS.includes(w));
+  const tokensB = tokenize(normalize(textB)).filter(w => w.length > 3 && !COMMON_STOPWORDS.includes(w));
 
   const tfidf = new natural.TfIdf();
   tfidf.addDocument(tokensA.join(' '));

@@ -3,85 +3,198 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Démonstration Algorithmes de Plagiat</title>
+  <title>AlgoLab — Détection de Plagiat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Démonstration des Algorithmes de Plagiat</h1>
-    <p>Collez deux textes ci-dessous pour voir comment les algorithmes détectent les similarités.</p>
 
-    <div class="text-inputs">
-      <div class="text-box">
-        <h2>Texte A</h2>
-        <textarea id="textA" placeholder="Collez votre premier texte ici..."></textarea>
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-mark"></div>
+        <span class="logo-text">Algo<span class="accent">Lab</span></span>
       </div>
-      <div class="text-box">
-        <h2>Texte B</h2>
-        <textarea id="textB" placeholder="Collez votre deuxième texte ici..."></textarea>
-      </div>
+      <p class="tagline">Détection de plagiat par analyse algorithmique</p>
     </div>
+  </header>
 
-    <button id="analyzeBtn">Analyser</button>
+  <main class="container">
 
-    <div class="results" id="results" style="display: none;">
-      <h2>Résultats</h2>
-      <div class="scores">
-        <div class="score-card">
+    <section class="card step" id="step-input">
+      <div class="step-header">
+        <span class="step-badge">Étape 1</span>
+        <h2>Entrez vos textes</h2>
+      </div>
+
+      <div class="text-inputs">
+        <div class="text-box">
+          <div class="text-box-header">
+            <label for="textA">Texte A — Original</label>
+            <div class="text-box-actions">
+              <span class="word-count" id="wordCountA">0 mots</span>
+              <button class="btn-example" data-target="A" title="Charger un exemple">Charger un exemple</button>
+            </div>
+          </div>
+          <textarea id="textA" placeholder="Collez votre premier texte ici…"></textarea>
+        </div>
+        <div class="text-box">
+          <div class="text-box-header">
+            <label for="textB">Texte B — Comparé</label>
+            <div class="text-box-actions">
+              <span class="word-count" id="wordCountB">0 mots</span>
+              <button class="btn-example" data-target="B" title="Charger un exemple">Charger un exemple</button>
+            </div>
+          </div>
+          <textarea id="textB" placeholder="Collez votre deuxième texte ici…"></textarea>
+        </div>
+      </div>
+
+      <button id="analyzeBtn" class="btn-analyze">
+        <span class="btn-icon"></span>
+        <span class="btn-text">Analyser les similarités</span>
+        <span class="btn-loader" hidden></span>
+      </button>
+    </section>
+
+    <section class="card results-section" id="results" hidden>
+      <div class="step-header">
+        <span class="step-badge step-badge--result">Étape 2</span>
+        <h2>Résultats de l'analyse</h2>
+        <button class="btn-export" id="exportBtn" title="Exporter en JSON">Exporter JSON</button>
+      </div>
+
+      <div class="scores-grid">
+        <div class="gauge-card">
+          <div class="gauge" data-value="0" id="gaugeCosine">
+            <svg viewBox="0 0 100 100">
+              <circle class="gauge-bg" cx="50" cy="50" r="42" />
+              <circle class="gauge-fill" cx="50" cy="50" r="42" />
+            </svg>
+            <span class="gauge-value" id="cosineScore">0%</span>
+          </div>
           <h3>TF-IDF + Cosinus</h3>
-          <p id="cosineScore">-</p>
-          <div class="progress">
-            <div id="cosineProgress" class="progress-bar cosine"></div>
-          </div>
-          <small>(40% du score final)</small>
+          <small>Poids : 40%</small>
         </div>
-        <div class="score-card">
+
+        <div class="gauge-card">
+          <div class="gauge" data-value="0" id="gaugeJaccard">
+            <svg viewBox="0 0 100 100">
+              <circle class="gauge-bg" cx="50" cy="50" r="42" />
+              <circle class="gauge-fill" cx="50" cy="50" r="42" />
+            </svg>
+            <span class="gauge-value" id="jaccardScore">0%</span>
+          </div>
           <h3>Indice de Jaccard</h3>
-          <p id="jaccardScore">-</p>
-          <div class="progress">
-            <div id="jaccardProgress" class="progress-bar jaccard"></div>
-          </div>
-          <small>(30% du score final)</small>
+          <small>Poids : 30%</small>
         </div>
-        <div class="score-card">
+
+        <div class="gauge-card">
+          <div class="gauge" data-value="0" id="gaugeNgram">
+            <svg viewBox="0 0 100 100">
+              <circle class="gauge-bg" cx="50" cy="50" r="42" />
+              <circle class="gauge-fill" cx="50" cy="50" r="42" />
+            </svg>
+            <span class="gauge-value" id="ngramScore">0%</span>
+          </div>
           <h3>N-gram Overlap</h3>
-          <p id="ngramScore">-</p>
-          <div class="progress">
-            <div id="ngramProgress" class="progress-bar ngram"></div>
-          </div>
-          <small>(30% du score final)</small>
-        </div>
-        <div class="score-card combined">
-          <h3>Score Combiné</h3>
-          <p id="combinedScore">-</p>
-          <div class="progress">
-            <div id="combinedProgress" class="progress-bar combined"></div>
-          </div>
-          <small>(0-100%)</small>
+          <small>Poids : 30%</small>
         </div>
       </div>
 
-      <div class="highlights">
-        <h3>Similarités Détectées</h3>
-        <div class="highlight-section">
-          <div class="highlight-box">
-            <h4>Texte A</h4>
-            <div id="highlightA" class="highlight-text"></div>
-          </div>
-          <div class="highlight-box">
-            <h4>Texte B</h4>
-            <div id="highlightB" class="highlight-text"></div>
-          </div>
+      <div class="combined-bar">
+        <div class="combined-header">
+          <h3>Score Combiné</h3>
+          <span class="combined-value" id="combinedScore">0%</span>
         </div>
-        <div class="legend">
-          <small>
-            <span class="legend-item"><span class="color-box ngram"></span> N-gram (segments identiques)</span>
-            <span class="legend-item"><span class="color-box jaccard"></span> Jaccard (mots communs)</span>
-          </small>
+        <div class="combined-track">
+          <div class="combined-fill" id="combinedFill"></div>
+        </div>
+        <div class="combined-labels">
+          <span>Faible</span>
+          <span>Moyen</span>
+          <span>Fort</span>
         </div>
       </div>
-    </div>
-  </div>
+
+      <div class="diff-view">
+        <div class="diff-header">
+          <h3>Vue comparative</h3>
+          <span class="diff-legend">
+            <span class="legend-dot ngram"></span> N-gram
+            <span class="legend-dot jaccard"></span> Jaccard
+            <span class="legend-dot cosine"></span> Cosinus
+          </span>
+        </div>
+        <div class="diff-body">
+          <div class="diff-pane" id="paneA">
+            <div class="diff-pane-label">Texte A</div>
+            <div class="diff-pane-content" id="highlightA"></div>
+          </div>
+          <div class="diff-pane" id="paneB">
+            <div class="diff-pane-label">Texte B</div>
+            <div class="diff-pane-content" id="highlightB"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card section-edu" id="how-it-works">
+      <details open>
+        <summary>
+          <h2>Comment ça marche ?</h2>
+          <span class="chevron"></span>
+        </summary>
+        <div class="edu-grid">
+          <div class="edu-card">
+            <div class="edu-icon edu-icon--cosine"></div>
+            <h3>TF-IDF + Cosinus</h3>
+            <p>Calcule l'importance de chaque mot (TF-IDF) puis mesure l'angle entre les deux vecteurs de texte. Plus l'angle est petit, plus les textes sont similaires.</p>
+            <div class="edu-example">
+              <div class="edu-example-label">Exemple :</div>
+              <code>"chat" apparaît 3× dans A, 1× dans B → poids élevé</code>
+            </div>
+          </div>
+          <div class="edu-card">
+            <div class="edu-icon edu-icon--jaccard"></div>
+            <h3>Indice de Jaccard</h3>
+            <p>Compare les ensembles de mots uniques : <code>intersection / union</code>. Un score de 1 = mêmes mots exacts, 0 = aucun mot en commun.</p>
+            <div class="edu-example">
+              <div class="edu-example-label">Exemple :</div>
+              <code>A={chat,souris,jardin} B={chat,souris,cour} → 2/4 = 50%</code>
+            </div>
+          </div>
+          <div class="edu-card">
+            <div class="edu-icon edu-icon--ngram"></div>
+            <h3>N-gram Overlap</h3>
+            <p>Détecte les séquences consécutives de mots (bigrams) identiques entre les deux textes. Capture les phrases copiées mot pour mot.</p>
+            <div class="edu-example">
+              <div class="edu-example-label">Exemple :</div>
+              <code>A="le chat noir" B="le chat noir" → bigram "le chat" match</code>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="card section-history" id="history-section" hidden>
+      <details>
+        <summary>
+          <h2>Historique des analyses</h2>
+          <span class="chevron"></span>
+          <span class="history-count" id="historyCount"></span>
+        </summary>
+        <div class="history-list" id="historyList"></div>
+        <button class="btn-clear-history" id="clearHistoryBtn">Supprimer l'historique</button>
+      </details>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>AlgoLab — Outil éducatif de démonstration algorithmique</p>
+  </footer>
 
   <script src="script.js"></script>
 </body>
