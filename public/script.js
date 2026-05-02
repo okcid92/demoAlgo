@@ -86,7 +86,16 @@ async function handleAnalyze() {
     animateGauge('gaugeCosine', 'cosineScore', data.cosine);
     animateGauge('gaugeJaccard', 'jaccardScore', data.jaccard);
     animateGauge('gaugeNgram', 'ngramScore', data.ngram);
+    animateGauge('gaugeWinnowing', 'winnowingScore', data.winnowing);
+    animateGauge('gaugeSimhash', 'simhashScore', data.simhash);
+    if (data.semantic !== undefined && data.semantic > 0) {
+      animateGauge('gaugeSemantic', 'semanticScore', data.semantic);
+    } else {
+      document.getElementById('semanticScore').textContent = '--';
+    }
     animateCombinedScore(data.combined);
+    animateLcsScore(data.lcs);
+    animateStyleScore(data.style);
 
     highlightText('highlightA', textA, data.highlights.textA);
     highlightText('highlightB', textB, data.highlights.textB);
@@ -142,6 +151,30 @@ function animateCombinedScore(value) {
   if (percent < 33) fill.classList.add('low');
   else if (percent < 66) fill.classList.add('medium');
   else fill.classList.add('high');
+
+  animateNumber(el, 0, percent, 1000, '%');
+}
+
+function animateLcsScore(value) {
+  const el = document.getElementById('lcsScore');
+  const fill = document.getElementById('lcsFill');
+  const percent = Math.max(0, Math.min(1, value)) * 100;
+
+  setTimeout(() => {
+    fill.style.width = percent + '%';
+  }, 200);
+
+  animateNumber(el, 0, percent, 1000, '%');
+}
+
+function animateStyleScore(value) {
+  const el = document.getElementById('styleScore');
+  const fill = document.getElementById('styleFill');
+  const percent = Math.max(0, Math.min(1, value)) * 100;
+
+  setTimeout(() => {
+    fill.style.width = percent + '%';
+  }, 200);
 
   animateNumber(el, 0, percent, 1000, '%');
 }
@@ -259,6 +292,10 @@ function saveToHistory(textA, textB, result) {
       cosine: result.cosine,
       jaccard: result.jaccard,
       ngram: result.ngram,
+      winnowing: result.winnowing,
+      simhash: result.simhash,
+      lcs: result.lcs,
+      style: result.style,
       combined: result.combined
     }
   };
@@ -343,6 +380,10 @@ function handleExport() {
       tfidfCosinus: lastResult.cosine,
       indiceJaccard: lastResult.jaccard,
       ngramOverlap: lastResult.ngram,
+      shinglingWinnowing: lastResult.winnowing,
+      simHashLSH: lastResult.simhash,
+      lcs: lastResult.lcs,
+      analyseStylistique: lastResult.style,
       scoreCombine: lastResult.combined
     }
   };

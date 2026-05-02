@@ -75,7 +75,7 @@
             <span class="gauge-value" id="cosineScore">0%</span>
           </div>
           <h3>TF-IDF + Cosinus</h3>
-          <small>Poids : 40%</small>
+          <small>Poids : 25%</small>
         </div>
 
         <div class="gauge-card">
@@ -87,7 +87,7 @@
             <span class="gauge-value" id="jaccardScore">0%</span>
           </div>
           <h3>Indice de Jaccard</h3>
-          <small>Poids : 30%</small>
+          <small>Poids : 15%</small>
         </div>
 
         <div class="gauge-card">
@@ -99,7 +99,62 @@
             <span class="gauge-value" id="ngramScore">0%</span>
           </div>
           <h3>N-gram Overlap</h3>
-          <small>Poids : 30%</small>
+          <small>Poids : 20%</small>
+        </div>
+
+        <div class="gauge-card">
+          <div class="gauge" data-value="0" id="gaugeWinnowing">
+            <svg viewBox="0 0 100 100">
+              <circle class="gauge-bg" cx="50" cy="50" r="42" />
+              <circle class="gauge-fill" cx="50" cy="50" r="42" />
+            </svg>
+            <span class="gauge-value" id="winnowingScore">0%</span>
+          </div>
+          <h3>Shingling (Winnowing)</h3>
+          <small>Poids : 15%</small>
+        </div>
+
+        <div class="gauge-card">
+          <div class="gauge" data-value="0" id="gaugeSemantic">
+            <svg viewBox="0 0 100 100">
+              <circle class="gauge-bg" cx="50" cy="50" r="42" />
+              <circle class="gauge-fill" cx="50" cy="50" r="42" />
+            </svg>
+            <span class="gauge-value" id="semanticScore">--</span>
+          </div>
+          <h3>Semantique (BERT)</h3>
+          <small>Poids : 15%</small>
+        </div>
+
+        <div class="gauge-card">
+          <div class="gauge" data-value="0" id="gaugeSimhash">
+            <svg viewBox="0 0 100 100">
+              <circle class="gauge-bg" cx="50" cy="50" r="42" />
+              <circle class="gauge-fill" cx="50" cy="50" r="42" />
+            </svg>
+            <span class="gauge-value" id="simhashScore">0%</span>
+          </div>
+          <h3>SimHash (LSH)</h3>
+          <small>Indicateur</small>
+        </div>
+      </div>
+
+      <div class="secondary-metrics">
+        <div class="metric-card">
+          <h3>Longest Common Subsequence (LCS)</h3>
+          <div class="metric-value" id="lcsScore">0%</div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="lcsFill"></div>
+          </div>
+          <small>Poids : 5% -- Plagiat chirurgical</small>
+        </div>
+        <div class="metric-card">
+          <h3>Analyse stylistique</h3>
+          <div class="metric-value" id="styleScore">0%</div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="styleFill"></div>
+          </div>
+          <small>Poids : 5% -- Distance structurelle</small>
         </div>
       </div>
 
@@ -153,25 +208,61 @@
             <p>Calcule l'importance de chaque mot (TF-IDF) puis mesure l'angle entre les deux vecteurs de texte. Plus l'angle est petit, plus les textes sont similaires.</p>
             <div class="edu-example">
               <div class="edu-example-label">Exemple :</div>
-              <code>"chat" apparaît 3× dans A, 1× dans B → poids élevé</code>
+              <code>"chat" apparait 3x dans A, 1x dans B -- poids eleve</code>
             </div>
           </div>
           <div class="edu-card">
             <div class="edu-icon edu-icon--jaccard"></div>
             <h3>Indice de Jaccard</h3>
-            <p>Compare les ensembles de mots uniques : <code>intersection / union</code>. Un score de 1 = mêmes mots exacts, 0 = aucun mot en commun.</p>
+            <p>Compare les ensembles de mots uniques : <code>intersection / union</code>. Un score de 1 = memes mots exacts, 0 = aucun mot en commun.</p>
             <div class="edu-example">
               <div class="edu-example-label">Exemple :</div>
-              <code>A={chat,souris,jardin} B={chat,souris,cour} → 2/4 = 50%</code>
+              <code>A={chat,souris,jardin} B={chat,souris,cour} -- 2/4 = 50%</code>
             </div>
           </div>
           <div class="edu-card">
             <div class="edu-icon edu-icon--ngram"></div>
             <h3>N-gram Overlap</h3>
-            <p>Détecte les séquences consécutives de mots (bigrams) identiques entre les deux textes. Capture les phrases copiées mot pour mot.</p>
+            <p>Detecte les sequences consecutives de mots (bigrams) identiques entre les deux textes. Capture les phrases copiees mot pour mot.</p>
             <div class="edu-example">
               <div class="edu-example-label">Exemple :</div>
-              <code>A="le chat noir" B="le chat noir" → bigram "le chat" match</code>
+              <code>A="le chat noir" B="le chat noir" -- bigram "le chat" match</code>
+            </div>
+          </div>
+          <div class="edu-card">
+            <div class="edu-icon edu-icon--winnowing"></div>
+            <h3>Shingling (Winnowing)</h3>
+            <p>Genere des empreintes (hash) de sequences de mots et les compare. Detecte les copies meme si les paragraphes sont reordonnes.</p>
+            <div class="edu-example">
+              <div class="edu-example-label">Exemple :</div>
+              <code>Shingle = hash(mot1..mot5) -- fenetre glissante retient le min</code>
+            </div>
+          </div>
+          <div class="edu-card">
+            <div class="edu-icon edu-icon--semantic"></div>
+            <h3>Semantique (BERT)</h3>
+            <p>Transforme le texte en vecteur dense capturant le sens profond. Detecte les paraphrases et traductions que les algorithmes lexicaux manquent.</p>
+            <div class="edu-example">
+              <div class="edu-example-label">Exemple :</div>
+              <code>"voiture rapide" ~= "automobile veloce" -- score 0.91</code>
+            </div>
+          </div>
+          <div class="edu-card">
+            <div class="edu-icon edu-icon--simhash"></div>
+            <h3>SimHash (LSH)</h3>
+            <p>Genere un hash 64 bits qui preserve la similarite. Deux textes proches ont des hashes proches (distance de Hamming faible).</p>
+            <div class="edu-example">
+              <div class="edu-example-label">Exemple :</div>
+              <code>Hamming(A, B) = 8 bits differents sur 64 -- similarite 87.5%</code>
+            </div>
+          </div>
+          <div class="edu-card">
+            <div class="edu-icon edu-icon--lcs"></div>
+            <h3>LCS</h3>
+            <p>Trouve la plus longue sous-sequence commune (pas forcement contigue). Detecte les suppressions et insertions de mots ("plagiat chirurgical").</p>
+            <div class="edu-example">
+              <div class="edu-example-label">Exemple :</div>
+              <code>A="a b c d e" B="a c d e" -- LCS = 4 -- Dice = 80%</code>
             </div>
           </div>
         </div>

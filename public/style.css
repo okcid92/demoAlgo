@@ -25,6 +25,14 @@
   --hl-jaccard-border: #22c55e;
   --hl-cosine: #dbeafe;
   --hl-cosine-border: #3b82f6;
+  --winnowing: #8b5cf6;
+  --winnowing-light: #ede9fe;
+  --semantic: #ec4899;
+  --semantic-light: #fce7f3;
+  --simhash: #6366f1;
+  --simhash-light: #e0e7ff;
+  --lcs: #14b8a6;
+  --lcs-light: #ccfbf1;
   --radius: 8px;
   --radius-sm: 6px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -359,6 +367,18 @@ textarea::placeholder {
   stroke: var(--orange);
 }
 
+.gauge-card:nth-child(4) .gauge-fill {
+  stroke: var(--winnowing);
+}
+
+.gauge-card:nth-child(5) .gauge-fill {
+  stroke: var(--semantic);
+}
+
+.gauge-card:nth-child(6) .gauge-fill {
+  stroke: var(--simhash);
+}
+
 .gauge-value {
   position: absolute;
   top: 50%;
@@ -380,6 +400,53 @@ textarea::placeholder {
 .gauge-card small {
   color: var(--text-dim);
   font-size: 13px;
+}
+
+.secondary-metrics {
+  margin-bottom: 24px;
+}
+
+.metric-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 18px 24px;
+}
+
+.metric-card h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.metric-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.metric-bar {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.metric-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.metric-card small {
+  color: var(--text-dim);
+  font-size: 12px;
 }
 
 .combined-bar {
@@ -610,6 +677,16 @@ details[open] .chevron {
   margin-top: 20px;
 }
 
+@media (min-width: 1000px) {
+  .scores-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .edu-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 .edu-card {
   background: var(--bg-input);
   border: 1px solid var(--border);
@@ -683,6 +760,111 @@ details[open] .chevron {
   background: var(--orange);
   border-radius: 1px;
   box-shadow: 0 -6px 0 var(--orange), 0 6px 0 var(--orange);
+}
+
+.edu-icon--winnowing {
+  background: var(--winnowing-light);
+  border: 1px solid var(--winnowing);
+  position: relative;
+}
+
+.edu-icon--winnowing::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--winnowing);
+  border-radius: 3px;
+  left: 7px;
+  top: 7px;
+}
+
+.edu-icon--winnowing::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--winnowing);
+  border-radius: 2px;
+  left: 14px;
+  top: 14px;
+}
+
+.edu-icon--semantic {
+  background: var(--semantic-light);
+  border: 1px solid var(--semantic);
+  position: relative;
+}
+
+.edu-icon--semantic::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--semantic);
+  border-radius: 50%;
+  left: 8px;
+  top: 8px;
+}
+
+.edu-icon--semantic::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: var(--semantic);
+  border-radius: 50%;
+  left: 15px;
+  top: 15px;
+}
+
+.edu-icon--simhash {
+  background: var(--simhash-light);
+  border: 1px solid var(--simhash);
+  position: relative;
+}
+
+.edu-icon--simhash::before {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 2px;
+  background: var(--simhash);
+  border-radius: 1px;
+  left: 11px;
+  top: 11px;
+  box-shadow:
+    0 -7px 0 var(--simhash),
+    0 -4px 0 var(--simhash),
+    0 4px 0 var(--simhash),
+    0 7px 0 var(--simhash);
+}
+
+.edu-icon--lcs {
+  background: var(--lcs-light);
+  border: 1px solid var(--lcs);
+  position: relative;
+}
+
+.edu-icon--lcs::before {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 2px;
+  background: var(--lcs);
+  left: 8px;
+  top: 10px;
+  box-shadow: 10px 8px 0 var(--lcs);
+}
+
+.edu-icon--lcs::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 12px;
+  background: var(--lcs);
+  left: 17px;
+  top: 7px;
 }
 
 .edu-card h3 {

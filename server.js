@@ -329,6 +329,222 @@ function getTopTfidfTerms(textA, textB, limit = 6) {
     .map(item => item.term);
 }
 
+// =============================================================================
+// Shingling (Winnowing) -- Detection de copies avec reordonnancement
+// Genere des empreintes (fingerprints) via des hash de k-shingles
+// Compare les ensembles d'empreintes par Jaccard
+// =============================================================================
+
+function hashShingle(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
+
+function generateShingles(text, k = 5) {
+  const words = normalize(text).split(/\s+/).filter(w => w.length > 0);
+  const shingles = [];
+  for (let i = 0; i <= words.length - k; i++) {
+    const shingle = words.slice(i, i + k).join(' ');
+    shingles.push(shingle);
+  }
+  return shingles;
+}
+
+function winnowing(text, k = 5, windowSize = 4) {
+  const shingles = generateShingles(text, k);
+  const hashes = shingles.map(s => hashShingle(s));
+  const fingerprints = new Set();
+
+  for (let i = 0; i <= hashes.length - windowSize; i++) {
+    const window = hashes.slice(i, i + windowSize);
+    const min = Math.min(...window);
+    fingerprints.add(min);
+  }
+
+  return fingerprints;
+}
+
+function winnowingSimilarity(textA, textB) {
+  const fpA = winnowing(textA);
+  const fpB = winnowing(textB);
+
+  if (fpA.size === 0 || fpB.size === 0) return 0;
+
+  const intersection = new Set([...fpA].filter(h => fpB.has(h)));
+  const union = new Set([...fpA, ...fpB]);
+
+  return intersection.size / union.size;
+}
+
+// =============================================================================
+// SimHash (Locality-Sensitive Hashing)
+// Genere un hash 64 bits qui preserve la similarite
+// Deux documents proches ont des hashes proches (Hamming faible)
+// =============================================================================
+
+function hashFNV64(str) {
+  let hash = 14695981039346656037n;
+  for (let i = 0; i < str.length; i++) {
+    hash = BigInt.asUintN(64, hash ^ BigInt(str.charCodeAt(i)));
+    hash = BigInt.asUintN(64, hash * 1099511628211n);
+  }
+  return hash;
+}
+
+function simHash(text, bits = 64) {
+  const tokens = tokenize(text.toLowerCase()).filter(w => w.length > 2 && !COMMON_STOPWORDS.includes(w));
+  const vector = new Array(bits).fill(0);
+
+  for (const token of tokens) {
+    const h = hashFNV64(token);
+    const weight = 1;
+
+    for (let i = 0; i < bits; i++) {
+      vector[i] += (h >> BigInt(i)) & 1n ? weight : -weight;
+    }
+  }
+
+  let result = 0n;
+  for (let i = 0; i < bits; i++) {
+    if (vector[i] > 0) result |= (1n << BigInt(i));
+  }
+
+  return result;
+}
+
+function hammingDistance(a, b) {
+  let diff = a ^ b;
+  let count = 0;
+  while (diff > 0n) {
+    count += Number(diff & 1n);
+    diff >>= 1n;
+  }
+  return count;
+}
+
+function simHashSimilarity(textA, textB) {
+  const hA = simHash(textA);
+  const hB = simHash(textB);
+  const distance = hammingDistance(hA, hB);
+  return 1 - distance / 64;
+}
+
+// =============================================================================
+// Longest Common Subsequence (LCS)
+// Trouve la plus longue sous-sequence commune (pas forcement contigue)
+// Detecte les suppressions/insertions de mots ("plagiat chirurgical")
+// =============================================================================
+
+function lcs(tokensA, tokensB) {
+  const maxTokens = 500;
+  const a = tokensA.length > maxTokens ? tokensA.slice(0, maxTokens) : tokensA;
+  const b = tokensB.length > maxTokens ? tokensB.slice(0, maxTokens) : tokensB;
+
+  const m = a.length;
+  const n = b.length;
+
+  const prev = new Array(n + 1).fill(0);
+  const curr = new Array(n + 1).fill(0);
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (a[i - 1] === b[j - 1]) {
+        curr[j] = prev[j - 1] + 1;
+      } else {
+        curr[j] = Math.max(prev[j], curr[j - 1]);
+      }
+    }
+    for (let j = 0; j <= n; j++) {
+      prev[j] = curr[j];
+    }
+  }
+
+  return prev[n];
+}
+
+function lcsSimilarity(textA, textB) {
+  const tokA = tokenize(textA.toLowerCase()).filter(w => w.length > 2);
+  const tokB = tokenize(textB.toLowerCase()).filter(w => w.length > 2);
+
+  if (tokA.length === 0 || tokB.length === 0) return 0;
+
+  const lcsLen = lcs(tokA, tokB);
+  return (2 * lcsLen) / (tokA.length + tokB.length);
+}
+
+// =============================================================================
+// Analyse Stylistique (Detection de Structure)
+// Compare la structure rhetorique et stylistique du document
+// Un plagiat conserve souvent l'architecture originale
+// =============================================================================
+
+function splitSentences(text) {
+  return text.split(/[.!?;:]+/).map(s => s.trim()).filter(s => s.length > 0);
+}
+
+function buildStyleProfile(text) {
+  const sentences = splitSentences(text);
+  const words = tokenize(text.toLowerCase());
+  const uniqueWords = new Set(words);
+  const punctuation = (text.match(/[.,;:!?«»()\-]/g) || []).length;
+  const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
+
+  const sentenceLengths = sentences.map(s => tokenize(s).length).filter(l => l > 0);
+  const avgSentenceLength = sentenceLengths.length > 0
+    ? sentenceLengths.reduce((a, b) => a + b, 0) / sentenceLengths.length
+    : 0;
+
+  const wordLengths = words.map(w => w.length).filter(l => l > 0);
+  const avgWordLength = wordLengths.length > 0
+    ? wordLengths.reduce((a, b) => a + b, 0) / wordLengths.length
+    : 0;
+
+  return {
+    avgSentenceLength,
+    avgWordLength,
+    punctuationDensity: text.length > 0 ? punctuation / text.length : 0,
+    paragraphCount: paragraphs.length,
+    vocabularyRichness: words.length > 0 ? uniqueWords.size / words.length : 0,
+    sentenceCount: sentences.length,
+    wordCount: words.length
+  };
+}
+
+function styleDistance(profileA, profileB) {
+  const metrics = ['avgSentenceLength', 'avgWordLength', 'punctuationDensity', 'vocabularyRichness'];
+  const diffs = metrics.map(m => {
+    const maxVal = Math.max(profileA[m], profileB[m], 0.001);
+    return Math.pow((profileA[m] - profileB[m]) / maxVal, 2);
+  });
+  const euclidean = Math.sqrt(diffs.reduce((a, b) => a + b, 0));
+
+  const maxCount = Math.max(profileA.sentenceCount, profileB.sentenceCount, 1);
+  const countDiff = Math.abs(profileA.sentenceCount - profileB.sentenceCount) / maxCount;
+  const maxPara = Math.max(profileA.paragraphCount, profileB.paragraphCount, 1);
+  const paraDiff = Math.abs(profileA.paragraphCount - profileB.paragraphCount) / maxPara;
+
+  return Math.sqrt(euclidean * euclidean + countDiff * countDiff + paraDiff * paraDiff) / 2;
+}
+
+function styleSimilarity(textA, textB) {
+  const pA = buildStyleProfile(textA);
+  const pB = buildStyleProfile(textB);
+  const dist = styleDistance(pA, pB);
+  return Math.max(0, 1 - dist);
+}
+
+// =============================================================================
+// Endpoint d'analyse
+// =============================================================================
+
+const { exec } = require('child_process');
+const path = require('path');
+
 // Endpoint d'analyse
 app.post('/api/analyze', (req, res) => {
   const { textA, textB } = req.body;
@@ -341,19 +557,65 @@ app.post('/api/analyze', (req, res) => {
   const cosine = Math.min(1, Math.max(0, calculateCosineSimilarity(textA, textB)));
   const jaccard = Math.min(1, Math.max(0, calculateJaccardSimilarity(textA, textB)));
   const ngram = Math.min(1, Math.max(0, calculateNgramSimilarity(textA, textB)));
-  
-  // Score combiné avec pondération 40/30/30
-  const combined = 0.4 * cosine + 0.3 * jaccard + 0.3 * ngram;
+  const winnowing = Math.min(1, Math.max(0, winnowingSimilarity(textA, textB)));
+  const simhash = Math.min(1, Math.max(0, simHashSimilarity(textA, textB)));
+  const lcs = Math.min(1, Math.max(0, lcsSimilarity(textA, textB)));
+  const style = Math.min(1, Math.max(0, styleSimilarity(textA, textB)));
+  const semantic = req.body.semantic !== undefined ? Math.min(1, Math.max(0, req.body.semantic)) : 0;
+
+  // Score combine avec ponderation 25/15/20/15/15/5/5
+  const combined =
+    0.25 * cosine +
+    0.15 * jaccard +
+    0.20 * ngram +
+    0.15 * winnowing +
+    0.15 * semantic +
+    0.05 * lcs +
+    0.05 * style;
   
   const highlights = generateHighlights(textA, textB);
+  const styleProfileA = buildStyleProfile(textA);
+  const styleProfileB = buildStyleProfile(textB);
   
   res.json({ 
     cosine: Math.round(cosine * 1000) / 1000, 
     jaccard: Math.round(jaccard * 1000) / 1000, 
-    ngram: Math.round(ngram * 1000) / 1000, 
+    ngram: Math.round(ngram * 1000) / 1000,
+    winnowing: Math.round(winnowing * 1000) / 1000,
+    simhash: Math.round(simhash * 1000) / 1000,
+    lcs: Math.round(lcs * 1000) / 1000,
+    style: Math.round(style * 1000) / 1000, 
     combined: Math.round(combined * 1000) / 1000, 
-    highlights 
+    highlights,
+    styleProfiles: { a: styleProfileA, b: styleProfileB }
   });
+});
+
+// Endpoint pour la similarite semantique via Python (optionnel)
+app.post('/api/semantic', (req, res) => {
+  const { textA, textB } = req.body;
+  
+  if (!textA || !textB) {
+    return res.status(400).json({ error: 'Les deux textes sont requis' });
+  }
+
+  const scriptPath = path.join(__dirname, 'scripts-python', 'semantic_similarity.py');
+  const pythonCommand = `python3 "${scriptPath}"`;
+
+  const proc = exec(pythonCommand, { timeout: 30000 }, (error, stdout, stderr) => {
+    if (error) {
+      return res.status(500).json({ error: 'Python non disponible ou script introuvable', detail: error.message });
+    }
+    try {
+      const result = JSON.parse(stdout.trim());
+      res.json(result);
+    } catch {
+      res.status(500).json({ error: 'Erreur de parsing du resultat Python', raw: stdout });
+    }
+  });
+
+  proc.stdin.write(JSON.stringify({ textA, textB }));
+  proc.stdin.end();
 });
 
 const PORT = process.env.PORT || 3001;
