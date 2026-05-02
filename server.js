@@ -572,6 +572,41 @@ app.post('/api/analyze', (req, res) => {
     0.15 * semantic +
     0.05 * lcs +
     0.05 * style;
+
+  // Affichage console des resultats pour analyse
+  const separator = '─'.repeat(60);
+  console.log('\n' + separator);
+  console.log('ANALYSE DE PLAGIAT');
+  console.log(separator);
+  console.log(`Texte A : "${textA.substring(0, 80)}${textA.length > 80 ? '...' : ''}"`);
+  console.log(`Texte B : "${textB.substring(0, 80)}${textB.length > 80 ? '...' : ''}"`);
+  console.log('─'.repeat(60));
+  console.log('SCORES PAR ALGORITHME');
+  console.log('─'.repeat(60));
+  
+  const scores = [
+    { name: 'TF-IDF + Cosinus', value: cosine, weight: 25 },
+    { name: 'Indice de Jaccard', value: jaccard, weight: 15 },
+    { name: 'N-gram Overlap', value: ngram, weight: 20 },
+    { name: 'Shingling (Winnowing)', value: winnowing, weight: 15 },
+    { name: 'SimHash (LSH)', value: simhash, weight: 0 },
+    { name: 'LCS', value: lcs, weight: 5 },
+    { name: 'Analyse Stylistique', value: style, weight: 5 }
+  ];
+  
+  scores.forEach(s => {
+    const bar = '█'.repeat(Math.round(s.value * 20)) + '░'.repeat(Math.round((1 - s.value) * 20));
+    const weightStr = s.weight > 0 ? `[${s.weight}%]` : '[-]  ';
+    console.log(`  ${s.name.padEnd(25)} ${weightStr} ${bar} ${(s.value * 100).toFixed(1)}%`);
+  });
+  
+  console.log('─'.repeat(60));
+  const combinedBar = '█'.repeat(Math.round(combined * 20)) + '░'.repeat(Math.round((1 - combined) * 20));
+  const interpretation = combined > 0.7 ? 'PLAGIAT FORT' : combined > 0.3 ? 'PLAGIAT MODERE' : combined > 0.1 ? 'PLAGIAT FAIBLE' : 'PAS DE PLAGIAT';
+  console.log(`  SCORE COMBINE                 ${combinedBar} ${(combined * 100).toFixed(1)}%`);
+  console.log(`  => ${interpretation}`);
+  console.log(separator);
+  console.log();
   
   const highlights = generateHighlights(textA, textB);
   const styleProfileA = buildStyleProfile(textA);
