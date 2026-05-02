@@ -411,6 +411,75 @@ node server.js > /tmp/analyse.log 2>&1
 
 ---
 
+## Ameliorations Apportees
+
+### 1. Prise en charge complete du francais
+
+| Amelioration | Avant | Apres |
+|---|---|---|
+| **Tokenisation** | `\w+` (ASCII uniquement) | `\p{L}+` (Unicode, tous alphabets) |
+| **Mots accentues** | `ete`, `ecole` coupes | `ete`, `ecole`, `universite` preservés |
+| **Mots avec apostrophe** | `l'intelligence` mal split | Découpage manuel par frontieres de mots |
+| **Stemming** | `PorterStemmer` anglais | `PorterStemmerFr` adapte au francais |
+| **Stopwords** | Liste anglaise (`the`, `and`) | 170+ stopwords francais (`le`, `la`, `de`, `et`, `que`...) |
+| **Decoupage phrases** | `[.!?]+` simple | Ponctuation francaise (`«»`, `;`, `:`, `...`) |
+
+**Impact** : Sans ces corrections, un texte comme *"L'intelligence artificielle revolutionne l'education"* etait mal tokenise, perdant les mots cles `intelligence`, `artificielle`, `revolutionne`, `education`.
+
+### 2. Unicode et Normalisation
+
+```
+Avant : regex [^\w\s] -> "résumé" -> "r sum " (accents detruits)
+Apres : regex [^\p{L}\p{N}\s] -> "résumé" -> " résumé " (preservé)
+
+Avant : regex \b\w+\b -> "êtes" -> null (frontiere ASCII)
+Apres : regex manuelle \p{L}+ -> "êtes" -> "êtes" (match correct)
+```
+
+### 3. Algorithmes Avances Ajoutes
+
+| Algorithme | Apport | Cas detecte |
+|---|---|---|
+| **Winnowing (Shingling)** | Fingerprints dans fenetre glissante | Reordonnancement de paragraphes |
+| **SimHash (LSH)** | Hash 64 bits preservant similarite | Documents quasi-identiques, pre-filtrage rapide |
+| **LCS (Sous-sequence)** | Programmation dynamique optimisee | Plagiat chirurgical (mots supprimes/insérés) |
+| **Analyse Stylistique** | 6 metriques structurelles | Paraphrases conservant l'architecture |
+
+### 4. UX et Interface
+
+- **Theme** : Passage d'un theme sombre/gradient a un theme clair professionnel
+- **Typographie** : Tailles de police augmentees (15-17px base, 32-42px titres)
+- **Jauges** : SVG circulaires animees avec `stroke-dashoffset` progressif
+- **Scroll synchro** : Vue comparative avec scroll lie entre les deux textes
+- **Highlights** : Coloration syntaxique des passages similaires detectes
+- **Historique** : Persistance localStorage des 20 dernieres analyses
+- **Export JSON** : Telechargement des resultats complets en un clic
+- **Responsive** : Grille adaptative (2 colonnes mobile -> 6 colonnes desktop)
+
+### 5. Performance et Robustesse
+
+- **LCS optimise** : Matrice reduite a 2 lignes (O(n) espace au lieu de O(n²))
+- **LCS limite** : Max 500 tokens pour eviter le blocage sur textes longs
+- **Winnowing edge case** : Retour `0` pour textes courts sans shingles (au lieu de `1`)
+- **Normalisation** : `String.normalize('NFD')` pour les caracteres composes
+- **Score combine** : Formule ponderee coherente (total = 100%)
+
+### 6. Console de Debug
+
+- **Tableau de bord** : Sortie console detaillee a chaque analyse
+- **Barres visuelles** : Progress bars ASCII avec poids de chaque algorithme
+- **Interpretation** : Classification automatique (FORT/MODERE/FAIBLE/NONE)
+- **Redirection** : `node server.js > logs.txt` pour analyse ulterieure
+
+### 7. Architecture Modulaire
+
+- **Frontend/Backend separes** : API REST + interface web independantes
+- **Python optionnel** : Semantic via Sentence-BERT en endpoint dedie (non bloquant)
+- **7 algorithmes JS** : Tous implementes sans dependances externes
+- **Configuration centralisee** : Poids des algorithmes definis en un point
+
+---
+
 ## Corrections et Bug Fixes
 
 Voir [CORRECTIONS.md](CORRECTIONS.md) pour l'historique des corrections appliquees.
