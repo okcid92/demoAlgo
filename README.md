@@ -209,12 +209,12 @@ Score = 0.25 * Cosinus
       + 0.15 * Jaccard
       + 0.20 * N-gram
       + 0.15 * Winnowing
-      + 0.15 * Semantique (Python, optionnel)
+      + 0.15 * Semantique (0 si non fourni)
       + 0.05 * LCS
       + 0.05 * Style
 ```
 
-Si la similarite semantique n'est pas disponible (Python non installe), son poids est attribue a zero et le score total est ajuste en consequence.
+Le score semantique est transmis via le champ optionnel `semantic` dans la requete POST. S'il n'est pas fourni, son poids est nul.
 
 ---
 
@@ -256,6 +256,7 @@ npm run dev
 2. Collez deux textes dans les zones de saisie
 3. Cliquez sur "Analyser les similarites"
 4. Visualisez les 7 scores et les similarites detectees dans la vue comparative
+5. Consultez la **console du serveur** pour un tableau de bord detaille avec barres de progression et interpretation automatique
 
 ---
 
@@ -263,15 +264,16 @@ npm run dev
 
 ```
 demoAlgo/
-├── server.js                    # Backend Express + 7 algorithmes JS
+├── server.js                    # Backend Express + 7 algorithmes JS + logs console detailles
 ├── scripts-python/
 │   └── semantic_similarity.py   # Similarite semantique (Sentence-BERT)
 ├── public/
 │   ├── index.html               # Frontend
 │   ├── style.css                # Styles (theme clair professionnel)
-│   └── script.js                # Logique frontend + historique
+│   └── script.js                # Logique frontend + historique + export JSON
 ├── package.json
-└── README.md
+├── README.md
+└── CORRECTIONS.md
 ```
 
 ---
@@ -280,13 +282,14 @@ demoAlgo/
 
 ### POST /api/analyze
 
-Analyse deux textes avec les 7 algorithmes.
+Analyse deux textes avec les 7 algorithmes JS. Le champ optionnel `semantic` permet d'inclure le score semantique precalcule.
 
 **Request** :
 ```json
 {
   "textA": "Le changement climatique represente l'un des defis majeurs du XXIe siecle.",
-  "textB": "L'un des plus grands challenges de notre epoque est le rechauffement planetaire."
+  "textB": "L'un des plus grands challenges de notre epoque est le rechauffement planetaire.",
+  "semantic": 0.87
 }
 ```
 
@@ -338,6 +341,44 @@ Analyse semantique profonde via Sentence-BERT.
 
 ---
 
+## Logs Console (Analyse Detaillee)
+
+Chaque analyse via l'API ou le frontend produit un tableau de bord detaille dans la console du serveur. Ce tableau inclut :
+
+- **Apercu des deux textes** (80 premiers caracteres)
+- **Scores par algorithme** avec barre de progression visuelle, poids dans le score combine, et pourcentage
+- **Score combine** avec interpretation automatique (PLAGIAT FORT / MODERE / FAIBLE / PAS DE PLAGIAT)
+
+**Exemple de sortie console** :
+```
+────────────────────────────────────────────────────────────
+ANALYSE DE PLAGIAT
+────────────────────────────────────────────────────────────
+Texte A : "Le changement climatique represente un defi majeur. La hausse des temperatures p..."
+Texte B : "Le changement climatique represente un defi majeur. La hausse des temperatures p..."
+────────────────────────────────────────────────────────────
+SCORES PAR ALGORITHME
+────────────────────────────────────────────────────────────
+  TF-IDF + Cosinus          [25%] ████████████████░░░░ 79.9%
+  Indice de Jaccard         [15%] █████████████████░░░ 83.3%
+  N-gram Overlap            [20%] ████████████████░░░░ 78.9%
+  Shingling (Winnowing)     [15%] ████████████░░░░░░░░ 60.0%
+  SimHash (LSH)             [-]   ██████████████████░░░ 87.5%
+  LCS                       [5%] █████████████████░░░ 85.7%
+  Analyse Stylistique       [5%] █████████████████░░░ 83.7%
+────────────────────────────────────────────────────────────
+  SCORE COMBINE                 █████████████░░░░░░░ 65.7%
+  => PLAGIAT MODERE
+────────────────────────────────────────────────────────────
+```
+
+Pour rediriger les logs vers un fichier :
+```bash
+node server.js > /tmp/analyse.log 2>&1
+```
+
+---
+
 ## Resultats des Tests
 
 ### Matrice de similarite par type de plagiat
@@ -346,9 +387,9 @@ Analyse semantique profonde via Sentence-BERT.
 |---|---|---|---|---|---|---|---|---|
 | Copie exacte | 100% | 100% | 100% | 100% | 100% | 100% | 100% | 85% |
 | Reformulation forte | 32% | 40% | 62% | 35% | 69% | 65% | 94% | 40% |
-| Reordonnancement | 100% | 100% | 97% | 58% | 100% | 68% | 100% | 77% |
-| Paraphrase | 2% | 3% | 22% | 0% | 55% | 22% | 96% | 11% |
-| Textes differents | 0% | 0% | 9% | 0% | 44% | 7% | 77% | 6% |
+| Reordonnancement | 100% | 100% | 97% | 58% | 100% | 68% | 100% | 74% |
+| Paraphrase | 0% | 0% | 24% | 0% | 56% | 22% | 94% | 10% |
+| Textes differents | 0% | 0% | 7% | 0% | 44% | 7% | 76% | 5% |
 
 ### Interpretation
 
@@ -363,9 +404,10 @@ Analyse semantique profonde via Sentence-BERT.
 
 - **Copie exacte** : Tous les algorithmes a 100%. Score combine = 85% (semantique = 0 sans Python).
 - **Reformulation** : N-gram reste eleve (phrases partiellement copiees). Winnowing baisse car shingles perturbes.
-- **Reordonnancement** : Cosinus/Jaccard ne detectent rien (100%). Winnowing penalise (58%). LCS aussi (68%).
-- **Paraphrase** : Algorithmes lexicaux echouent (2-22%). SimHash et Style captent la similarite structurelle.
-- **Textes differents** : Scores faibles. SimHash ~44% attendu pour textes aleatoires de meme longueur.
+- **Reordonnancement** : Cosinus/Jaccard ne discriminent pas (100%). Winnowing penalise (58%). LCS aussi (68%).
+- **Paraphrase** : Algorithmes lexicaux echouent (0-24%). SimHash (56%) et Style (94%) captent la similarite structurelle.
+- **Textes differents** : Scores faibles. Combine = 5%. SimHash ~44% attendu pour textes aleatoires de meme longueur.
+- **Plagiat chirurgical** (mots supprimes) : LCS = 85%, N-gram = 72%. Combine = 52%.
 
 ---
 
